@@ -2,13 +2,16 @@
  * Node Application Server
  */
 var App = require('http').createServer(handler),
+    Log = require('./Server/lib/Logger').Logger,
     IO = require('socket.io').listen(App),
-    Static = require('node-static'); // for serving files
+    Static = require('node-static'),
+    Server = require('./Server/Server'),
+    Player = require('./Server/Player'),
+    version = 0.1;
 
-// This will make all the files in the current folder accessible from the web
+IO.logLevel = 1;
 var fileServer = new Static.Server('./Client');
-// This is the port for our web server. You will need to go to http://localhost:8080 to see it
-App.listen(8080);
+App.listen(8080);// This is the port for our web server. You will need to go to http://localhost:8080 to see it
 
 // If the URL of the socket server is opened in a browser
 function handler(request, response) {
@@ -18,7 +21,15 @@ function handler(request, response) {
 }
 
 function main() {
-    console.log("Start Server...");
+    var log = new Log();
+    log.DebugEnable(process.env.LogDebug);
+    log.info('Starting Server...');
+
+    var server = new Server();
+
+    IO.sockets.on('connection', function (socket) {
+        socket.emit('1', '');
+    });
 }
 
 main();
