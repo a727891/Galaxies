@@ -1,3 +1,0 @@
-/**
- * Node Application Server
- */
