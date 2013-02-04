@@ -3,12 +3,14 @@
  **/
 define([], function () {
     var app = Class.extend({
-        init:function (IO) {
-            this.socket = IO.connect('http://localhost:8080');
+        init:function () {
+            this.socket = io.connect('http://localhost:8080');
 
-            this.socket.on('1', function () {
-                console.log('on 1');
+
+            this.socket.on('1', function (data) {
+                console.log("recieved a 1");
             });
+
         },
     });
 

@@ -9,7 +9,7 @@ var App = require('http').createServer(handler),
     Player = require('./Server/Player'),
     version = 0.1;
 
-IO.logLevel = 1;
+IO.set('log level', 1);  //Reduce SocketIO output
 var fileServer = new Static.Server('./Client');
 App.listen(8080);// This is the port for our web server. You will need to go to http://localhost:8080 to see it
 

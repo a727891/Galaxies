@@ -8,9 +8,9 @@ define(['jquery', 'lib/class', 'lib/socket.io', 'app'], function ($, Class, IO, 
     var initApp = function () {
 
         $(document).ready(function () {
-            app = new APP(IO);
+            app = new APP();
             galaxies = app;
-        })
+        });
 
     };
 
