@@ -25,10 +25,15 @@ function main() {
     log.DebugEnable(process.env.LogDebug);
     log.info('Starting Server...');
 
-    var server = new Server();
+    var server = new Server(log);
 
     IO.sockets.on('connection', function (socket) {
+        server.connectCallback(new Player(0, 0, 0));
         socket.emit('1', '');
+
+        socket.on('disconnect', function () {
+            console.log('Socket died');
+        });
     });
 }
 
