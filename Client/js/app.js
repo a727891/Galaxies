@@ -1,7 +1,7 @@
 /**
  * app class
  **/
-define([], function () {
+define(['Renderer'], function (renderer) {
     var app = Class.extend({
         init:function () {
             var self = this;
