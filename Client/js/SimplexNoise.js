@@ -10,20 +10,19 @@ define([], function () {
                 this.perm[i] = this.p[i & 255];
 
             this.Canvas = Canvas;
-            this.Context = Canvas.getContext('2d');
+//            this.Context = Canvas.getContext('2d');
+            this.Context = Context;
             this.Seed = undefined;
-            this.TilesData = undefined;
+            this.TilesData = [];
+            this.config = {
+                'color':false,
+                'colorlevels':[],
+            };
+        },
 
-            var h = this.Canvas.height,
-                w = this.Canvas.width,
-                t0 = 70,
-                t1 = 100,
-                t2 = 110,
-                t3 = 150,
-                t4 = 200,
-                t5 = 240,
-                s = null;
-            this.GenImage(h, w, t0, t1, t2, t3, t4, t5, s);
+        LoadCanvas:function (canvas, context) {
+            this.Canvas = canvas;
+            this.Context = context;
         },
 
         grad3:[
@@ -89,7 +88,6 @@ define([], function () {
             251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107,
             49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254,
             138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180],
-
         // To remove the need for index wrapping, var the permutation table length
         perm:[],
         // A lookup table to traverse the simplex around a given povar in 4D.
@@ -160,7 +158,6 @@ define([], function () {
             [3, 2, 0, 1],
             [3, 2, 1, 0]
         ],
-
         // This method is a *lot* faster than using (var)Math.floor(x)
         fastfloor:function (x) {
             return Math.floor(x);
@@ -372,7 +369,6 @@ define([], function () {
             // The result is scaled to stay just inside [-1,1]
             return 32.0 * (n0 + n1 + n2 + n3);
         },
-
         // 4D simplex noise
         noise4:function (x, y, z, w) {
             // The skewing and unskewing factors are hairy again for the 4D case
@@ -494,7 +490,7 @@ define([], function () {
         },
 
         drawPixel:function (data, x, y, r, g, b) {
-            var loc = 4 * (y * 300 + x);
+            var loc = 4 * (y * this.Canvas.height + x);
             //document.write(x + ", " + y + ": " + loc + " " + r + "<br>");
             data[loc] = r;
             data[loc + 1] = g;
@@ -521,94 +517,70 @@ define([], function () {
             return n * .7; // / total;
         },
 
-
-        GenImage:function (h, w, t0, t1, t2, t3, t4, t5, s) {
-            if (s != null && s > 0)
-                var seed = s;
-            else
-                var seed = Math.random() * 10000000000;
-
+        GenImage:function (s) {
+            var h = this.Canvas.height;
+            var w = this.Canvas.width;
+            if (s != null && s > 0) {
+                this.Seed = s;
+            } else {
+                this.Seed = Math.random() * 10000000000;
+            }
             var imgd = this.Context.createImageData(w, h);
             var pix = imgd.data;
-            var tiles = {};
             for (var j = 0; j < h; j++) {
                 for (var i = 0; i < w; i++) {
-                    var r, g, b, t;
                     var x = this.mapXY(i / w, .35);
                     var y = this.mapXY(j / h, .35);
                     var c = Math.floor(
                         this.round(
-                            this.noise(6, x.x + seed, x.y + seed, y.x + seed, y.y + seed),
+                            this.noise(6, x.x + this.Seed, x.y + this.Seed, y.x + this.Seed, y.y + this.Seed),
                             3
                         ) * 128 + 128
                     );
-                    if (c < t0) {
-                        r = 0;
-                        g = 0;
-                        b = 128;
-                        t = 1;
-                    }
-                    else if (c < t1) {
-                        r = 0;
-                        g = 0;
-                        b = 200;
-                        t = 2;
-                    }
-                    else if (c < t2) {
-                        r = 90;
-                        g = 90;
-                        b = 90;
-                        t = 3;
-                    }
-                    else if (c < t3) {
-                        r = 0;
-                        g = 64;
-                        b = 0;
-                        t = 4;
-                    }
-                    else if (c < t4) {
-                        r = 200;
-                        g = 200;
-                        b = 200;
-                        t = 5;
-                    }
-                    else if (c <= t5) {
-                        r = 255;
-                        g = 255;
-                        b = 255;
-                        t = 6;
-                    }
-                    else {
-                        r = 255;
-                        g = 0;
-                        b = 0;
-                        t = 7;
-                    }
-                    this.drawPixel(pix, i, j, r, g, b);
-                    tiles[j * h + i] = t;
+                    this.DeterminePixel(pix, i, j, c);
                 }
             }
             this.Context.putImageData(imgd, 0, 0);
-            //document.write("<br>Random Seed="+seed+"<br>");
-            this.Seed = seed;
-            this.TilesData = JSON.stringify(tiles);
         },
-        GenImage1:function () {
-            var h = document.getElementById("height").value,
-                w = document.getElementById("width").value,
-                t0 = document.getElementById("t0").value,
-                t1 = document.getElementById("t1").value,
-                t2 = document.getElementById("t2").value,
-                t3 = document.getElementById("t3").value,
-                t4 = document.getElementById("t4").value,
-                t5 = document.getElementById("t5").value,
-                s = document.getElementById("s").value;
-            if (s)
-                s = parseFloat(s);
-            this.GenImage(h, w, t0, t1, t2, t3, t4, t5, s);
+
+        DeterminePixel:function (picture, i, j, pixelValue) {
+            if (this.config.color) {
+                for (var k = 0; k < this.config.colorlevels.length; k++) {
+                    if (pixelValue < this.config.colorlevels[k].v) {
+                        this.drawPixel(picture, i, j,
+                            this.config.colorlevels[k].r,
+                            this.config.colorlevels[k].g,
+                            this.config.colorlevels[k].b);
+                        if (this.config.colorlevels[k].t)
+                            this.TilesData[j * this.Canvas.height + i] = this.config.colorlevels[k].t;
+                        k = this.config.colorlevels.length + 1;
+                    }
+                }
+            } else { //Grayscale image
+                this.drawPixel(picture, i, j, pixelValue, pixelValue, pixelValue);
+
+            }
+
         },
+
         InsertControls:function () {
-            $(this.Canvas).append('<div>Canvas controls</div>');
+            var self = this;
+            $("body").append('<div id="SimplexControl">' +
+                '<p id="Seed">Current Seed:' + this.Seed + '<input id="NewSeed"/></p>' +
+                '<p id="TilesOut"><button id="ShowTiles">Tiles</button></p>' +
+                'Add more controls here' +
+                '<p><button id="Regenerate">Regenerate Image</button></p>' +
+                '</div>');
+//            $('#ShowTiles').click(function(){
+//                $('#TilesOut').html(JSON.stringify(self.TilesData));
+//            });
+            $('#ShowTiles').click(function () {
+                window.prompt("Copy to clipboard: Ctrl+C, Enter", JSON.stringify(self.TilesData));
+            });
+            $('#Regenerate').click(function () {
+                self.GenImage($('#NewSeed').val());
+                $('#Seed').html('<p id="Seed">Current Seed:' + self.Seed + '<input id="NewSeed"/></p>');
+            });
         }
     });
 
