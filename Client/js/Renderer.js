@@ -4,18 +4,22 @@
 define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
     var Renderer = Class.extend({
         init:function () {
-//            this.Canvas = document.getElementById('TestCanvas');
-//            this.Context = this.Canvas.getContext('2d');
             this.TileData = new TileData();
             this.LoadCanvas('TestCanvas');
             this.Simplex = new Simplex(this.Canvas, this.Context);
-            this.Simplex.config.color = false;
-//            this.Simplex.config.colorlevels = this.TileData.WorldTiles;
-//            this.Simplex.GenImage(null);
+            this.Simplex.config.color = true;
+            this.Simplex.config.colorlevels = this.TileData.WorldTiles;
+            this.Simplex.GenImage(null);
 //            this.Simplex.InsertControls();
-//            var Tiles = this.Simplex.TilesData;
+            this.WorldTiles = {
+                tiles:this.Simplex.TilesData,
+                width:this.Canvas.width,
+                height:this.Canvas.height
+            };
             this.Simplex.config.color = true;
             this.GenTileMap();
+            this.RenderWorldSetup();
+//            this.RenderWorld(0,0)
 
         },
         LoadCanvas:function (canvas) {
@@ -23,6 +27,33 @@ define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
             this.Context = this.Canvas.getContext('2d');
         },
 
+        RenderWorldSetup:function () {
+            this.LoadCanvas('WorldRender');
+            this.WorldRender = {
+                worldCanvas:this.Canvas,
+                worldContext:this.Context,
+                tilesX:Math.floor(this.Canvas.width / 32),
+                tilesY:Math.floor(this.Canvas.height / 32),
+                posX:0,
+                posY:0
+            };
+            console.dir(this.WorldRender);
+        },
+        RenderWorld:function (x, y) {
+            var i, j;
+            for (j = 0; j < this.WorldRender.tilesY; j++) {
+                for (i = 0; i < this.WorldRender.tilesX; i++) {
+                    this.DrawTile(x + i, y + j, this.TilePositions[this.GetTileByWorldCoords(x + i, y + j)]);
+                }
+            }
+        },
+        DrawTile:function (x, y, TilePosition) {
+//            console.log("Draw tile",x,y,TilePosition);
+            this.Context.drawImage(this.TileMapCanvas,
+                TilePosition.x, TilePosition.y, 32, 32,
+                x * 32, y * 32, 32, 32);
+
+        },
         GenTileMap:function () {
             this.LoadCanvas('TileMap');
             this.TileMapCanvas = this.Canvas;
@@ -41,7 +72,7 @@ define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
                 tile_y,
                 i, j;
 
-            console.log("MaxX:" + max_x, "MaxY:" + max_y, 'tW:' + t_w, 'tH:' + t_h);
+            //Generate Terrain tiles
             for (i = 0, j = this.TileData.Tiles.length; i < j; i++) {
                 console.log("Generate tile called: " + this.TileData.Tiles[i].name);
                 this.Simplex.config.colorlevels = this.TileData.Tiles[i].colors;
@@ -54,9 +85,9 @@ define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
                     0, 0, t_w, t_h,
                     tile_x, tile_y, t_w, t_h);
             }
+
             var tileCount = i,
                 SourceX, SourceY, SourceX2, SourceY2;
-
             var maxX = this.Canvas.width,
                 midX = maxX / 2,
                 maxY = this.Canvas.height,
@@ -65,111 +96,16 @@ define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
                 CircleUp = 1.5 * Math.PI,
                 CircleRight = 0,
                 CircleDown = 0.5 * Math.PI;
-            var Paths = [
-                //TODO: Clean up this shit.
-                function (ctx) {
-                    ctx.beginPath(); //UpperLeftCorner
-                    ctx.moveTo(0, 0);
-                    ctx.arc(0, 0, midX, CircleLeft, CircleDown, false);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //LowerLeftCorner
-                    ctx.moveTo(0, maxY);
-                    ctx.arc(0, maxY, midX, CircleUp, CircleLeft, false);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //LowerRightCorner
-                    ctx.moveTo(maxX, maxY);
-                    ctx.arc(maxX, maxY, midX, CircleRight, CircleUp, false);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //UpperRightCorner
-                    ctx.moveTo(maxX, 0);
-                    ctx.arc(maxX, 0, midX, CircleDown, CircleLeft, false);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //TopBottom
-                    ctx.rect(0, 0, maxX, midY);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //LeftRight
-                    ctx.rect(0, 0, midX, maxY);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //RightLeft
-                    ctx.rect(midX, 0, maxX, maxY);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //BottomTop
-                    ctx.rect(0, midX, maxX, midY);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //UpperLeftCorner
-                    ctx.fillStyle = 'black';
-                    ctx.moveTo(midX, 0);
-                    ctx.arc(0, 0, midX, CircleLeft, CircleDown, false);
-                    ctx.lineTo(0, maxY);
-                    ctx.lineTo(maxX, maxY);
-                    ctx.lineTo(maxX, 0);
-//                    ctx.lineTo(midX,0);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //LowerLeftCorner
-                    ctx.moveTo(0, midY);
-                    ctx.arc(0, maxY, midX, CircleUp, CircleLeft, false);
-                    ctx.lineTo(maxX, maxY);
-                    ctx.lineTo(maxX, 0);
-                    ctx.lineTo(0, 0);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //LowerRightCorner
-//                    ctx.moveTo(maxX, maxY);
-                    ctx.arc(maxX, maxY, midX, CircleRight, CircleUp, false);
-                    ctx.lineTo(maxX, midY);
-                    ctx.lineTo(maxX, 0);
-                    ctx.lineTo(0, 0);
-                    ctx.lineTo(0, maxY);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-                function (ctx) {
-                    ctx.beginPath(); //UpperRightCorner
-//                    ctx.moveTo(maxX, 0);
-                    ctx.arc(maxX, 0, midX, CircleDown, CircleLeft, false);
-                    ctx.lineTo(0, 0);
-                    ctx.lineTo(0, maxY);
-                    ctx.lineTo(maxX, maxY);
-                    ctx.fill();
-                    ctx.closePath();
-                },
-            ];
-
+            var PathsControl = this.PathsControl(maxX, midX, maxY, midY,
+                CircleLeft, CircleUp, CircleRight, CircleDown);
+            //Generate transition tiles.
             for (i = 0, j = this.TileData.Tiles.length - 1; i < j; i++) {
                 SourceX = t_h * Math.floor(i / max_y);
                 SourceY = t_w * (i % max_y);
                 SourceX2 = t_h * Math.floor((i + 1) / max_y);
                 SourceY2 = t_w * ((i + 1) % max_y);
-                for (k = 0, l = Paths.length; k < l; k++) {
+
+                for (k = 0, l = PathsControl.length; k < l; k++) {
                     tile_y = t_h * Math.floor(tileCount / max_y);
                     tile_x = t_w * (tileCount % max_y);
                     tileCount++;
@@ -180,11 +116,8 @@ define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
 
                     this.Context.save();
                     this.Context.clearRect(0, 0, maxX, maxY);
-//                    this.Context.drawImage(this.TileMapCanvas,
-//                        SourceY, SourceX, t_w, t_h,
-//                        0, 0, t_w, t_h);
                     this.Context.fillStyle = 'white';
-                    Paths[k % (Paths.length)](this.Context);
+                    this.Paths[PathsControl[k][0]](this.Context, PathsControl[k][1]);
                     this.Context.globalCompositeOperation = 'source-in';
                     this.Context.drawImage(this.TileMapCanvas,
                         SourceY2, SourceX2, t_w, t_h,
@@ -197,12 +130,71 @@ define(['SimplexNoise', 'TileData'], function (Simplex, TileData) {
                 }
 
             }
+            this.ComputeTileLocations(tileCount, t_w, t_h, max_x);
 
-        }
+        },
+        ComputeTileLocations:function (tileCount, t_w, t_h, max_y) {
+            console.log('compute positions,', tileCount, t_w, t_h, max_y);
+            this.TilePositions = [];
+            for (var i = 0; i <= tileCount; i++) {
+                tile_y = t_h * Math.floor(i / max_y);
+                tile_x = t_w * (i % max_y);
+                this.TilePositions[i] = {x:tile_x, y:tile_y};
+            }
+        },
+        GetTileByWorldCoords:function (x, y) {
+            return this.WorldTiles.tiles[x * this.WorldTiles.width + y];
+        },
+
+        PathsControl:function (maxX, midX, maxY, midY, CircleLeft, CircleUp, CircleRight, CircleDown) {
+            return [
+                [0, [maxX, 0, midX, CircleDown, CircleLeft], 'UpperRightCorner'],
+                [0, [0, 0, midX, CircleLeft, CircleDown], 'UpperLeftCorner'],
+                [0, [maxX, maxY, midX, CircleRight, CircleUp], 'LowerRightCorner'],
+                [0, [0, maxY, midX, CircleUp, CircleLeft], 'LowerLeftCorner'],
+                [1, [0, 0, maxX, midY], 'TopBottom'],
+                [1, [0, midX, maxX, midY], 'BottomTop'],
+                [1, [midX, 0, maxX, maxY], 'RightLeft'],
+                [1, [0, 0, midX, maxY], 'LeftRight'],
+                [2, [maxX, 0, midX, CircleDown, CircleLeft, 0, 0, 0, maxY, maxX, maxY], 'UpperRightCorner2'],
+                [2, [0, 0, midX, CircleLeft, CircleDown, 0, maxY, maxX, maxY, maxX, 0], 'UpperLeftCorner2'],
+                [2, [maxX, maxY, midX, CircleRight, CircleUp, maxX, 0, 0, 0, 0, maxY], 'LowerRightCorner2'],
+                [2, [0, maxY, midX, CircleUp, CircleLeft, maxX, maxY, maxX, 0, 0, 0], 'LowerLeftCorner2']
+            ];
+        },
+        Paths:[
+            function (ctx, arr) {
+                //arr = x, y, r, aS, aE
+                ctx.beginPath();
+                ctx.moveTo(arr[0], arr[1]);
+                ctx.arc(arr[0], arr[1], arr[2], arr[3], arr[4], false);
+                ctx.fill();
+                ctx.closePath();
+            },
+            function (ctx, arr) {
+                //arr = x1, y1, x2, y2
+                ctx.beginPath(); //TopBottom
+                ctx.rect(arr[0], arr[1], arr[2], arr[3]);
+                ctx.fill();
+                ctx.closePath();
+            },
+            function (ctx, arr) {
+                //arr =  aX, aY, aR, aS, aE, l1X, l1Y, l2X, l2Y, l3X, l3Y
+                ctx.beginPath();
+                ctx.moveTo(arr[0], arr[1]);
+                ctx.arc(arr[0], arr[1], arr[2], arr[3], arr[4], false);
+                ctx.lineTo(arr[5], arr[6]);
+                ctx.lineTo(arr[7], arr[8]);
+                ctx.lineTo(arr[9], arr[10]);
+                ctx.fill();
+                ctx.closePath();
+            }
+        ]
 
 
     });
 
-    return Renderer
-});
+    return Renderer;
+})
+;
 
